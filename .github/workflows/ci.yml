@@ -30,3 +30,38 @@ jobs:
         run: moon test --target wasm-gc
       - name: Native tests
         run: moon test --target native
+
+  interop:
+    name: interop (official nats CLI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hustcer/setup-moonbit@v1
+        with:
+          version: latest
+      - name: Update registry index
+        run: moon update
+      - name: Install nats CLI
+        run: |
+          set -euo pipefail
+          VERSION=$(curl -fsSL https://api.github.com/repos/nats-io/natscli/releases/latest | jq -r .tag_name)
+          echo "natscli ${VERSION}"
+          curl -fsSL "https://github.com/nats-io/natscli/releases/download/${VERSION}/nats-${VERSION}-linux-amd64.zip" -o nats.zip
+          unzip -q nats.zip
+          sudo install -m 0755 "nats-${VERSION}-linux-amd64/nats" /usr/local/bin/nats
+          nats --version
+      - name: Pub/sub against moonnatsd
+        run: |
+          set -euo pipefail
+          moon run cmd/moonnatsd --target native > server.log 2>&1 &
+          SERVER_PID=$!
+          sleep 2
+          nats -s nats://127.0.0.1:4222 sub hello --count 1 > sub.out &
+          SUB_PID=$!
+          sleep 1
+          nats -s nats://127.0.0.1:4222 pub hello world
+          wait "${SUB_PID}"
+          cat sub.out
+          grep -q world sub.out
+          kill "${SERVER_PID}" || true
+
