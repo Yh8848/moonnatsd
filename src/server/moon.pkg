@@ -1,1 +1,9 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/aqueue",
+  "moonbitlang/async/socket",
+  "moonbitlang/core/encoding/utf8",
+  "Yh8848/moonnatsd/src/core",
+}
+
 supported_targets = "+native"

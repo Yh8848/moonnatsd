@@ -1,1 +1,5 @@
+import {
+  "Yh8848/moonnatsd/src/server",
+}
+
 supported_targets = "+native"

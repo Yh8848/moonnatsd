@@ -2,10 +2,18 @@
 package "Yh8848/moonnatsd/src/server"
 
 // Values
+pub async fn run(ServerConfig) -> Unit
 
 // Errors
 
 // Types and methods
+pub(all) struct ServerConfig {
+  host : String
+  port : Int32
+  max_payload : Int32
+  server_name : String
+}
+pub fn ServerConfig::new() -> Self
 
 // Type aliases
 

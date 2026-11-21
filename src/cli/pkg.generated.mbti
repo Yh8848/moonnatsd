@@ -2,7 +2,7 @@
 package "Yh8848/moonnatsd/src/cli"
 
 // Values
-pub fn run() -> Unit
+pub async fn run() -> Unit
 
 // Errors
 

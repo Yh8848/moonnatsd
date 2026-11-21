@@ -1,5 +1,6 @@
 ///|
 /// Command-line entry point for moonnatsd.
-pub fn run() -> Unit {
-  println("moonnatsd 0.1.0 (NATS-compatible server, MoonBit)")
+pub async fn run() -> Unit {
+  let config = @server.ServerConfig::new()
+  @server.run(config)
 }
