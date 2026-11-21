@@ -1,12 +1,65 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "Yh8848/moonnatsd/src/core"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
+pub fn hmsg_header(String, String, String?, Int32, Int32) -> String
+
+pub fn info_line(String, String, String, Int32, Int32) -> String
+
+pub fn msg_header(String, String, String?, Int32) -> String
+
+pub fn parse_client_line(String, Int32) -> Result[ClientOp, ParseError]
+
+pub fn subject_matches(String, String) -> Bool
+
+pub fn valid_subject_pattern(String) -> Bool
+
 pub fn version() -> String
 
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
+pub(all) enum ClientOp {
+  Connect(String)
+  Ping
+  Pong
+  Pub(String, String?, Int32)
+  Hpub(String, String?, Int32, Int32)
+  Sub(String, String?, String)
+  Unsub(String, Int32?)
+}
+
+#derive(Eq, @debug.Debug)
+pub(all) enum ParseError {
+  EmptyLine
+  UnknownOp(String)
+  BadArity(String)
+  BadNumber(String)
+  PayloadTooLarge(Int32)
+}
+
+pub struct Registry {
+  subs : Array[Subscription]
+  cursor : Map[String, Int32]
+}
+pub fn Registry::add(Self, Subscription) -> Unit
+pub fn Registry::length(Self) -> Int32
+pub fn Registry::new() -> Self
+pub fn Registry::remove(Self, Int32, String) -> Unit
+pub fn Registry::remove_conn(Self, Int32) -> Unit
+pub fn Registry::select(Self, String) -> Array[Subscription]
+
+pub(all) struct Subscription {
+  sid : String
+  subject : String
+  queue : String?
+  conn_id : Int32
+}
 
 // Type aliases
 
