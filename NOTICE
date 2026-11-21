@@ -1,0 +1,14 @@
+moonnatsd
+Copyright 2026 Yh8848
+
+This project is an independent reimplementation of the NATS server protocol.
+It is developed from the public NATS protocol documentation, the NATS
+architecture decision records, and observable wire behavior. No source code
+from the reference implementation is copied into this repository.
+
+Reference project:
+  NATS Server - https://github.com/nats-io/nats-server
+  License: Apache-2.0
+
+"NATS" is a trademark of the NATS project. This project is not affiliated with,
+sponsored by, or endorsed by the NATS project or its maintainers.
