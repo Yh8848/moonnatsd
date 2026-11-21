@@ -189,11 +189,24 @@ async fn handle_connection(state : ServerState, conn : @socket.Tcp) -> Unit {
 }
 
 ///|
+/// Bind a listener. Exposed for tests, which pass port 0 and use
+/// `server.addr` to discover the ephemeral port.
+pub async fn bind(config : ServerConfig) -> @socket.TcpServer {
+  let addr = @socket.Addr::new(0x7F000001U, config.port)
+  @socket.TcpServer(addr, reuse_addr=true)
+}
+
+///|
+/// Serve on an already-bound listener until it is closed.
+pub async fn serve(server : @socket.TcpServer, config : ServerConfig) -> Unit {
+  let state = ServerState::new(config)
+  server.run_forever((conn, _) => handle_connection(state, conn))
+}
+
+///|
 /// Start the server and block until the listener stops.
 pub async fn run(config : ServerConfig) -> Unit {
-  let state = ServerState::new(config)
-  let addr = @socket.Addr::new(0x7F000001U, config.port)
-  let server = @socket.TcpServer(addr, reuse_addr=true)
+  let server = bind(config)
   println("moonnatsd listening on \{server.addr}")
-  server.run_forever((conn, _) => handle_connection(state, conn))
+  serve(server, config)
 }

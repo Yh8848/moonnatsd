@@ -1,8 +1,16 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "Yh8848/moonnatsd/src/server"
 
+import {
+  "moonbitlang/async/socket",
+}
+
 // Values
+pub async fn bind(ServerConfig) -> @socket.TcpServer
+
 pub async fn run(ServerConfig) -> Unit
+
+pub async fn serve(@socket.TcpServer, ServerConfig) -> Unit
 
 // Errors
 
