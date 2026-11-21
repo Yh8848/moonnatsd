@@ -10,12 +10,12 @@ JetStream/KV not yet implemented).
 |---|---|---|
 | MoonBit is the primary implementation language | repository source tree; the protocol/server code is MoonBit | ✅ |
 | Public GitHub repository | https://github.com/Yh8848/moonnatsd | ✅ |
-| At least 10 meaningful commits | `git log --oneline` (14+ at this checkpoint) | ✅ |
+| At least 10 meaningful commits | `git log --oneline` (15+ at this checkpoint) | ✅ |
 | README: goal, install, usage, examples, reproducible | `README.md` quickstart; CI runs the same commands | ✅ |
 | CI covers check, build, test | `.github/workflows/ci.yml`, green on Ubuntu/macOS/Windows | ✅ |
-| At least one runnable example | README quickstart; `examples/` to be added with JetStream | ⏳ |
+| At least one runnable example | README quickstart; a dedicated `examples/` directory follows with JetStream | ⏳ |
 | Tests cover the core paths | 13 core tests + 2 TCP integration tests (native) | ✅ |
-| Published to mooncakes.io | `Yh8848/moonnatsd` 0.1.0 | ⏳ |
+| Published to mooncakes.io | [`Yh8848/moonnatsd@0.1.0`](https://mooncakes.io/docs/Yh8848/moonnatsd) (build: success) | ✅ |
 | OSI license | Apache-2.0 `LICENSE` | ✅ |
 | Reference/porting attribution | `NOTICE`, README "References" | ✅ |
 | Declared core features implemented | core NATS done; JetStream/KV pending | ⏳ |
