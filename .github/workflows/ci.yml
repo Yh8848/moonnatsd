@@ -55,8 +55,9 @@ jobs:
         run: |
           set -euo pipefail
           moon build --target native --release
-          BIN=$(find _build/native -type f -name moonnatsd | head -n1)
+          BIN=$(find _build/native -type f -name 'moonnatsd*' | head -n1)
           echo "server binary: ${BIN}"
+          chmod +x "${BIN}"
           "${BIN}" > server.log 2>&1 &
           SERVER_PID=$!
           for i in $(seq 1 60); do
