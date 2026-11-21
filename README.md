@@ -1,11 +1,14 @@
 # moonnatsd
 
+[![CI](https://github.com/Yh8848/moonnatsd/actions/workflows/ci.yml/badge.svg)](https://github.com/Yh8848/moonnatsd/actions/workflows/ci.yml)
+
 NATS-compatible server with JetStream, written in MoonBit.
 
-> **Status: early development.** The protocol core and the native server are
-> being built in public for the 2026 MoonBit hackathon. The goal is a
-> single-node, embeddable NATS server that the official `nats` CLI and the
-> existing NATS client libraries can talk to.
+> **Status: early development.** The protocol core and a minimal native server
+> are working: a client can connect, `PING`/`PONG`, `SUB`, `PUB`, and receive
+> `MSG` frames, including wildcard and queue-group subscriptions. JetStream,
+> KV, monitoring and the `nats` CLI acceptance script are the next milestones.
+> The plan and scope are tracked in [`docs/acceptance.md`](docs/acceptance.md).
 
 ## Why
 
@@ -33,18 +36,21 @@ the server side, with a focus on:
 
 ## Quickstart
 
+Requires the MoonBit toolchain. On Windows, the MoonBit native runtime requires
+MSVC (MinGW is not supported by the runtime).
+
 ```bash
-# requires the MoonBit toolchain
-moon check
-moon run cmd/moonnatsd
+moon check --deny-warn
+moon test --target wasm-gc     # pure core, no native toolchain required
+moon test --target native      # protocol + TCP integration tests
+moon run cmd/moonnatsd         # listens on 127.0.0.1:4222
 ```
 
-Once the protocol core lands, the demo will be:
+In another terminal, with the official [`nats` CLI](https://github.com/nats-io/natscli):
 
 ```bash
-moon run cmd/moonnatsd -- --port 4222
-nats -s nats://127.0.0.1:4222 pub hello world
 nats -s nats://127.0.0.1:4222 sub hello
+nats -s nats://127.0.0.1:4222 pub hello world
 ```
 
 ## Architecture
@@ -59,7 +65,8 @@ src/cli       command line and embedded API
 ```
 
 Design notes live in [`docs/architecture.md`](docs/architecture.md) and
-[`docs/adr/`](docs/adr/).
+[`docs/adr/`](docs/adr/). The supported protocol surface and known differences
+are tracked in [`docs/compatibility.md`](docs/compatibility.md).
 
 ## References and license
 
