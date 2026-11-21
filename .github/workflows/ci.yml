@@ -20,6 +20,8 @@ jobs:
           version: latest
       - name: Show toolchain
         run: moon version
+      - name: Update registry index
+        run: moon update
       - name: Format check
         run: moon fmt --check
       - name: Type check
