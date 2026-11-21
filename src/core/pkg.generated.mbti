@@ -1,0 +1,13 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Yh8848/moonnatsd/src/core"
+
+// Values
+pub fn version() -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

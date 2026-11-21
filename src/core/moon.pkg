@@ -1,0 +1,2 @@
+// Protocol model and codec. This package is pure (no I/O), so it can be
+// tested on every MoonBit backend.

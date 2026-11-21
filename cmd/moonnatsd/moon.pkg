@@ -1,0 +1,7 @@
+import {
+  "Yh8848/moonnatsd/src/cli",
+}
+
+supported_targets = "+native"
+
+pkgtype(kind: "executable")

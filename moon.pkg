@@ -1,0 +1,2 @@
+// The root package is intentionally empty. The implementation lives in
+// src/core, src/server, src/jetstream, src/store and src/cli.
