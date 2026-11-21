@@ -8,17 +8,18 @@ JetStream/KV not yet implemented).
 
 | Requirement | Evidence | Status |
 |---|---|---|
-| MoonBit is the primary implementation language | repository source tree; the protocol/server code is MoonBit | ✅ |
-| Public GitHub repository | https://github.com/Yh8848/moonnatsd | ✅ |
-| At least 10 meaningful commits | `git log --oneline` (15+ at this checkpoint) | ✅ |
-| README: goal, install, usage, examples, reproducible | `README.md` quickstart; CI runs the same commands | ✅ |
-| CI covers check, build, test | `.github/workflows/ci.yml`, green on Ubuntu/macOS/Windows | ✅ |
-| At least one runnable example | README quickstart; a dedicated `examples/` directory follows with JetStream | ⏳ |
-| Tests cover the core paths | 13 core tests + 2 TCP integration tests (native) | ✅ |
-| Published to mooncakes.io | [`Yh8848/moonnatsd@0.1.0`](https://mooncakes.io/docs/Yh8848/moonnatsd) (build: success) | ✅ |
-| OSI license | Apache-2.0 `LICENSE` | ✅ |
-| Reference/porting attribution | `NOTICE`, README "References" | ✅ |
-| Declared core features implemented | core NATS done; JetStream/KV pending | ⏳ |
+| MoonBit is the primary implementation language | repository source tree; the protocol/server code is MoonBit | 鉁?|
+| Public GitHub repository | https://github.com/Yh8848/moonnatsd | 鉁?|
+| At least 10 meaningful commits | `git log --oneline` (20+ at this checkpoint) | 鉁?|
+| README: goal, install, usage, examples, reproducible | `README.md` quickstart; CI runs the same commands | 鉁?|
+| CI covers check, build, test | `.github/workflows/ci.yml`, green on Ubuntu/macOS/Windows | 鉁?|
+| At least one runnable example | README quickstart; a dedicated `examples/` directory follows with JetStream | 鈴?|
+| Tests cover the core paths | 13 core tests + 2 TCP integration tests + official `nats` CLI pub/sub in CI | 鉁?|
+| Official nats CLI interop | `interop` job: `nats sub` / `nats pub` against `moonnatsd` | 鉁?|
+| Published to mooncakes.io | [`Yh8848/moonnatsd@0.1.0`](https://mooncakes.io/docs/Yh8848/moonnatsd) (build: success) | 鉁?|
+| OSI license | Apache-2.0 `LICENSE` | 鉁?|
+| Reference/porting attribution | `NOTICE`, README "References" | 鉁?|
+| Declared core features implemented | core NATS done; JetStream/KV pending | 鈴?|
 
 ## How each item is verified
 
