@@ -54,9 +54,17 @@ jobs:
       - name: Pub/sub against moonnatsd
         run: |
           set -euo pipefail
-          moon run cmd/moonnatsd --target native > server.log 2>&1 &
+          moon build --target native --release
+          BIN=$(find _build/native -type f -name moonnatsd | head -n1)
+          echo "server binary: ${BIN}"
+          "${BIN}" > server.log 2>&1 &
           SERVER_PID=$!
-          sleep 2
+          for i in $(seq 1 60); do
+            if nats -s nats://127.0.0.1:4222 pub __ready__ ok >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
           nats -s nats://127.0.0.1:4222 sub hello --count 1 > sub.out &
           SUB_PID=$!
           sleep 1
