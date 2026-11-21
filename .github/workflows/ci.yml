@@ -42,13 +42,14 @@ jobs:
       - name: Update registry index
         run: moon update
       - name: Install nats CLI
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          VERSION=$(curl -fsSL https://api.github.com/repos/nats-io/natscli/releases/latest | jq -r .tag_name)
-          echo "natscli ${VERSION}"
-          curl -fsSL "https://github.com/nats-io/natscli/releases/download/${VERSION}/nats-${VERSION}-linux-amd64.zip" -o nats.zip
-          unzip -q nats.zip
-          sudo install -m 0755 "nats-${VERSION}-linux-amd64/nats" /usr/local/bin/nats
+          mkdir -p natsdist
+          gh release download --repo nats-io/natscli --pattern '*linux-amd64.zip' --dir natsdist
+          unzip -q natsdist/*.zip -d natsdist
+          find natsdist -type f -name nats -exec sudo install -m 0755 {} /usr/local/bin/nats \;
           nats --version
       - name: Pub/sub against moonnatsd
         run: |
