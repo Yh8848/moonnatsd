@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hustcer/setup-moonbit@v1
+        with:
+          version: latest
+      - name: Show toolchain
+        run: moon version
+      - name: Format check
+        run: moon fmt --check
+      - name: Type check
+        run: moon check --deny-warn
+      - name: Core tests (wasm-gc)
+        run: moon test --target wasm-gc
+      - name: Native tests
+        run: moon test --target native
