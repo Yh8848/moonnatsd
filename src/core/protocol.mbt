@@ -207,3 +207,25 @@ pub fn hmsg_header(
     None => "HMSG \{subject} \{sid} \{header_size} \{total_size}\r\n"
   }
 }
+
+///|
+/// `+OK` acknowledgement, used only when the client requested `verbose`.
+pub fn ok_line() -> String {
+  "+OK\r\n"
+}
+
+///|
+pub fn ping_line() -> String {
+  "PING\r\n"
+}
+
+///|
+pub fn pong_line() -> String {
+  "PONG\r\n"
+}
+
+///|
+/// A protocol error frame. `message` must not contain a single quote.
+pub fn err_line(message : String) -> String {
+  "-ERR '\{message}'\r\n"
+}
