@@ -10,49 +10,33 @@ pub(all) struct Subscription {
 ///|
 /// Protocol-independent subscription registry.
 ///
-/// The registry knows nothing about sockets; the server maps a `conn_id` to a
-/// connection and performs delivery. All methods are synchronous and are only
-/// called from the single-threaded async runtime.
+/// The registry is a thin facade over `SubjectTrie`; the server maps a
+/// `conn_id` to a connection and performs delivery. All methods are synchronous
+/// and are only called from the single-threaded async runtime.
 pub struct Registry {
-  subs : Array[Subscription]
-  cursor : Map[String, Int32]
+  trie : SubjectTrie
 }
 
 ///|
 pub fn Registry::new() -> Registry {
-  { subs: [], cursor: Map([]), }
+  { trie: SubjectTrie::new(), }
 }
 
 ///|
 pub fn Registry::add(self : Registry, sub : Subscription) -> Unit {
-  self.subs.push(sub)
+  self.trie.insert(sub)
 }
 
 ///|
 /// Remove a specific subscription of a connection.
 pub fn Registry::remove(self : Registry, conn_id : Int32, sid : String) -> Unit {
-  let mut i = 0
-  while i < self.subs.length() {
-    let sub = self.subs[i]
-    if sub.conn_id == conn_id && sub.sid == sid {
-      let _ = self.subs.remove(i)
-    } else {
-      i = i + 1
-    }
-  }
+  self.trie.remove(conn_id, sid)
 }
 
 ///|
 /// Remove every subscription owned by a connection (called on disconnect).
 pub fn Registry::remove_conn(self : Registry, conn_id : Int32) -> Unit {
-  let mut i = 0
-  while i < self.subs.length() {
-    if self.subs[i].conn_id == conn_id {
-      let _ = self.subs.remove(i)
-    } else {
-      i = i + 1
-    }
-  }
+  self.trie.remove_conn(conn_id)
 }
 
 ///|
@@ -63,42 +47,17 @@ pub fn Registry::select(
   self : Registry,
   subject : String,
 ) -> Array[Subscription] {
-  let plain : Array[Subscription] = []
-  let groups : Map[String, Array[Subscription]] = Map([])
-  for sub in self.subs {
-    if subject_matches(sub.subject, subject) {
-      match sub.queue {
-        None => plain.push(sub)
-        Some(queue) => {
-          let arr = match groups.get(queue) {
-            Some(arr) => arr
-            None => {
-              let arr : Array[Subscription] = []
-              groups.set(queue, arr)
-              arr
-            }
-          }
-          arr.push(sub)
-        }
-      }
-    }
-  }
-  for queue in groups.keys() {
-    match groups.get(queue) {
-      Some(arr) =>
-        if arr.length() > 0 {
-          let index = self.cursor.get_or_default(queue, 0)
-          plain.push(arr[index % arr.length()])
-          self.cursor.set(queue, index + 1)
-        }
-      None => ()
-    }
-  }
-  plain
+  self.trie.select(subject)
 }
 
 ///|
 /// Number of subscriptions, for tests and monitoring.
 pub fn Registry::length(self : Registry) -> Int32 {
-  self.subs.length()
+  self.trie.count()
+}
+
+///|
+/// Number of trie nodes, for tests and monitoring.
+pub fn Registry::node_count(self : Registry) -> Int32 {
+  self.trie.node_count()
 }
