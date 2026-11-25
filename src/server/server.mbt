@@ -281,7 +281,7 @@ async fn handle_connection(state : ServerState, conn : @socket.Tcp) -> Unit {
     ),
   )
   @async.with_task_group(group => {
-    group.spawn_bg(no_wait=true) <| () => { writer_loop(conn, outbox) }
+    group.spawn_bg() <| () => { writer_loop(conn, outbox) }
     while conn.read_until("\r\n") is Some(line) {
       if line.length() > state.config.max_control_line {
         outbox.put(
@@ -295,6 +295,9 @@ async fn handle_connection(state : ServerState, conn : @socket.Tcp) -> Unit {
           outbox.put(@utf8.encode(@core.err_line(format_error(error))))
       }
     }
+    // Let the writer drain queued frames (for example the error just sent)
+    // before the task group cancels it.
+    outbox.close()
   }) catch {
     _ => ()
   }
