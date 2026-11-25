@@ -36,6 +36,7 @@ pub fn ServerConfig::new() -> ServerConfig {
 /// One live client connection. `outbox` is the only writer of `conn`, so
 /// frames from different publishers cannot interleave.
 priv struct Connection {
+  conn : @socket.Tcp
   outbox : @aqueue.Queue[Bytes]
 }
 
@@ -47,6 +48,7 @@ priv struct ServerState {
   registry : @core.Registry
   conns : Map[Int32, Connection]
   auth_ok : Map[Int32, Bool]
+  no_responses : Map[Int32, Bool]
   names : Map[Int32, String]
   stats : @core.Stats
   mut next_id : Int32
@@ -60,6 +62,7 @@ fn ServerState::new(config : ServerConfig) -> ServerState {
     registry: @core.Registry::new(),
     conns: Map([]),
     auth_ok: Map([]),
+    no_responses: Map([]),
     names: Map([]),
     stats: @core.Stats::new(),
     next_id: 1,
@@ -117,36 +120,52 @@ async fn writer_loop(conn : @socket.Tcp, outbox : @aqueue.Queue[Bytes]) -> Unit 
 }
 
 ///|
-async fn deliver(
+/// Enqueue one frame without blocking. A full queue means the consumer is too
+/// slow: close the socket and let the read loop clean up.
+fn push_frame(target : Connection, frame : Bytes) -> Bool {
+  let ok = target.outbox.try_put(frame) catch { _ => false }
+  if !ok {
+    target.conn.close()
+  }
+  ok
+}
+
+///|
+fn deliver(
   state : ServerState,
   subject : String,
   reply : String?,
   payload : Bytes,
-) -> Unit {
+) -> Int32 {
   let targets = state.registry.select(subject)
+  let count = targets.length()
   for sub in targets {
     match state.conns.get(sub.conn_id) {
       Some(target) => {
         let header = @core.msg_header(subject, sub.sid, reply, payload.length())
-        target.outbox.put(@utf8.encode(header))
-        target.outbox.put(payload)
-        target.outbox.put(@utf8.encode("\r\n"))
-        state.stats.record_out(payload.length())
+        if push_frame(target, @utf8.encode(header)) {
+          if push_frame(target, payload) {
+            let _ = push_frame(target, @utf8.encode("\r\n"))
+            state.stats.record_out(payload.length())
+          }
+        }
       }
       None => ()
     }
   }
+  count
 }
 
 ///|
-async fn deliver_h(
+fn deliver_h(
   state : ServerState,
   subject : String,
   reply : String?,
   header_size : Int32,
   payload : Bytes,
-) -> Unit {
+) -> Int32 {
   let targets = state.registry.select(subject)
+  let count = targets.length()
   for sub in targets {
     match state.conns.get(sub.conn_id) {
       Some(target) => {
@@ -157,14 +176,25 @@ async fn deliver_h(
           header_size,
           payload.length(),
         )
-        target.outbox.put(@utf8.encode(header))
-        target.outbox.put(payload)
-        target.outbox.put(@utf8.encode("\r\n"))
-        state.stats.record_out(payload.length())
+        if push_frame(target, @utf8.encode(header)) {
+          if push_frame(target, payload) {
+            let _ = push_frame(target, @utf8.encode("\r\n"))
+            state.stats.record_out(payload.length())
+          }
+        }
       }
       None => ()
     }
   }
+  count
+}
+
+///|
+/// NATS no-responders: a request with no matching subscriber gets a 503 status
+/// header delivered to its reply subject, if the client opt-in via CONNECT.
+fn send_no_responders(state : ServerState, reply : String) -> Unit {
+  let payload = @utf8.encode("NATS/1.0 503\r\n\r\n")
+  let _ = deliver_h(state, reply, None, payload.length(), payload)
 }
 
 ///|
@@ -177,6 +207,7 @@ async fn handle_connect(
   match @core.parse_connect(json) {
     Ok(options) => {
       state.names.set(conn_id, options.name.unwrap_or(""))
+      state.no_responses.set(conn_id, options.no_responders)
       if authorize(state.config.auth, options) {
         state.auth_ok.set(conn_id, true)
         true
@@ -236,7 +267,16 @@ async fn handle_op(
         let payload = conn.read_exactly(size)
         let _ = conn.read_exactly(2)
         state.stats.record_in(size)
-        deliver(state, subject, reply, payload)
+        let delivered = deliver(state, subject, reply, payload)
+        if delivered == 0 {
+          match reply {
+            Some(reply) =>
+              if state.no_responses.get(conn_id).unwrap_or(false) {
+                send_no_responders(state, reply)
+              }
+            None => ()
+          }
+        }
         true
       }
     Hpub(subject, reply, header_size, total_size) =>
@@ -246,7 +286,16 @@ async fn handle_op(
         let payload = conn.read_exactly(total_size)
         let _ = conn.read_exactly(2)
         state.stats.record_in(total_size)
-        deliver_h(state, subject, reply, header_size, payload)
+        let delivered = deliver_h(state, subject, reply, header_size, payload)
+        if delivered == 0 {
+          match reply {
+            Some(reply) =>
+              if state.no_responses.get(conn_id).unwrap_or(false) {
+                send_no_responders(state, reply)
+              }
+            None => ()
+          }
+        }
         true
       }
   }
@@ -255,14 +304,16 @@ async fn handle_op(
 ///|
 async fn handle_connection(state : ServerState, conn : @socket.Tcp) -> Unit {
   let conn_id = state.alloc_id()
-  let outbox : @aqueue.Queue[Bytes] = @aqueue.Queue::Queue(kind=Unbounded)
-  state.conns.set(conn_id, { outbox, })
+  let outbox : @aqueue.Queue[Bytes] = @aqueue.Queue::Queue(kind=Blocking(4096))
+  state.conns.set(conn_id, { conn, outbox, })
   state.auth_ok.set(conn_id, state.config.auth is None)
+  state.no_responses.set(conn_id, false)
   state.names.set(conn_id, "")
   state.stats.open_connection()
   defer {
     state.conns.remove(conn_id)
     state.auth_ok.remove(conn_id)
+    state.no_responses.remove(conn_id)
     state.names.remove(conn_id)
     state.registry.remove_conn(conn_id)
     state.stats.close_connection()

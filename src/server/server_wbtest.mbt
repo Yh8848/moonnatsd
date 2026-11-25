@@ -91,6 +91,40 @@ async test "ping gets pong" {
 }
 
 ///|
+async test "no responders returns 503 to reply subject" {
+  let config = test_config(0)
+  let server = bind(config)
+  let addr = server.addr
+  @async.with_task_group(group => {
+    group.spawn_bg(no_wait=true) <| () => { serve(server, config) }
+    @async.sleep(20)
+    let _ = @async.with_timeout(5000, () => {
+      let client = @socket.Tcp::connect(addr)
+      defer client.close()
+      let _ = client.read_until("\r\n")
+      client.write("CONNECT {\"no_responders\":true,\"headers\":true}\r\n")
+      client.write("SUB _INBOX.test 1\r\n")
+      client.write("PUB nobody _INBOX.test 0\r\n\r\n")
+      match client.read_until("\r\n") {
+        Some(line) => assert_true(line.has_prefix("HMSG _INBOX.test 1 16 16"))
+        None => assert_true(false)
+      }
+      match client.read_until("\r\n") {
+        Some(line) => assert_true(line.has_prefix("NATS/1.0 503"))
+        None => assert_true(false)
+      }
+      match client.read_until("\r\n") {
+        Some(line) => assert_eq(line, "")
+        None => assert_true(false)
+      }
+    }) catch {
+      _ => assert_true(false)
+    }
+    group.return_immediately(())
+  })
+}
+
+///|
 async test "token auth rejects wrong token" {
   let config = test_config_auth(0, "secret")
   let server = bind(config)
