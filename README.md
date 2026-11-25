@@ -4,11 +4,13 @@
 
 NATS-compatible server with JetStream, written in MoonBit.
 
-> **Status: early development.** The protocol core and a minimal native server
-> are working: a client can connect, `PING`/`PONG`, `SUB`, `PUB`, and receive
-> `MSG` frames, including wildcard and queue-group subscriptions. JetStream,
-> KV, monitoring and the `nats` CLI acceptance script are the next milestones.
-> The plan and scope are tracked in [`docs/acceptance.md`](docs/acceptance.md).
+> **Status: core NATS server is working.** A client can connect, authenticate,
+> `PING`/`PONG`, `SUB`, `PUB`/`HPUB`, and receive `MSG`/`HMSG`, including
+> wildcard and queue-group subscriptions. The server enforces payload/control
+> line/connection limits, serves `/varz`, `/connz`, `/subsz` and `/healthz`, and
+> has a CLI with auth and monitoring flags. JetStream and KV are the next
+> milestones. The plan and scope are tracked in
+> [`docs/acceptance.md`](docs/acceptance.md).
 
 ## Why
 
@@ -25,13 +27,28 @@ the server side, with a focus on:
   leaf nodes, gateways, JWT/nkey accounts and multi-tenancy are explicitly out
   of scope for v1.
 
+## Implemented today
+
+- **Protocol core** (`src/core`): `INFO`, `CONNECT`, `PING`, `PONG`, `PUB`,
+  `HPUB`, `SUB`, `UNSUB`, `MSG`, `HMSG`, `+OK`, `-ERR`; `NATS/1.0` header block
+  parser; `CONNECT` JSON options; token and user/password auth.
+- **Subject trie**: `*` and `>` matching, queue-group round-robin, in-place
+  removal, node counting.
+- **Server runtime** (`src/server`): one task per connection, a per-connection
+  outbox so frames never interleave, bounded control line/payload, structured
+  shutdown, connection and byte counters.
+- **Monitoring**: `/varz`, `/connz`, `/subsz`, `/healthz` JSON over HTTP.
+- **CLI** (`src/cli`): `--host`, `--port`, `--max-payload`,
+  `--max-control-line`, `--max-connections`, `--server-name`, `--token`,
+  `--user`, `--pass`, `--monitor-port`, `--help`, `--version`.
+
 ## Scope
 
 | Area | v1 |
 |---|---|
-| Core NATS | `INFO/CONNECT/PUB/HPUB/SUB/UNSUB/MSG/HMSG/PING/PONG/+OK/-ERR`, headers, wildcards, queue groups, request/reply, `no_responders`, auth, limits, monitoring |
-| JetStream | single-node streams, retention, dedupe, push/pull consumers, ACK/NAK/WPI/TERM, KV |
-| Interfaces | `moonnatsd` CLI, embedded `@natsd.start(...)`, JSON status, monitoring endpoints |
+| Core NATS | protocol listed above, headers, wildcards, queue groups, auth, limits, monitoring |
+| JetStream | single-node streams, retention, dedupe, push/pull consumers, ACK/NAK/WPI/TERM, KV (next) |
+| Interfaces | `moonnatsd` CLI, JSON status, monitoring endpoints |
 | Out of scope | clustering/Raft, leaf nodes, gateways, JWT/nkey, multi-tenancy, mirrors/sources, object store, encryption at rest |
 
 ## Quickstart
@@ -42,8 +59,16 @@ MSVC (MinGW is not supported by the runtime).
 ```bash
 moon check --deny-warn
 moon test --target wasm-gc     # pure core, no native toolchain required
-moon test --target native      # protocol + TCP integration tests
+moon test --target native      # protocol, auth and TCP integration tests
 moon run cmd/moonnatsd         # listens on 127.0.0.1:4222
+```
+
+With authentication and monitoring:
+
+```bash
+moon run cmd/moonnatsd -- --token secret --monitor-port 8222
+curl -s http://127.0.0.1:8222/varz
+nats -s nats://127.0.0.1:4222 --auth-token secret pub hello world
 ```
 
 In another terminal, with the official [`nats` CLI](https://github.com/nats-io/natscli):
@@ -56,17 +81,23 @@ nats -s nats://127.0.0.1:4222 pub hello world
 ## Architecture
 
 ```
-src/core      pure protocol model, parser, subject trie, delivery (no I/O)
-src/server    native listener/connection runtime (async)
+src/core      pure protocol model, header/CONNECT parsing, subject trie, stats
+src/server    native listener/connection runtime, auth, monitoring
 src/store     WAL/block storage and recovery (planned)
 src/jetstream stream/consumer state machines (planned)
 src/kv        KV facade over JetStream (planned)
-src/cli       command line and embedded API
+src/cli       argument parsing and command line
 ```
 
 Design notes live in [`docs/architecture.md`](docs/architecture.md) and
 [`docs/adr/`](docs/adr/). The supported protocol surface and known differences
 are tracked in [`docs/compatibility.md`](docs/compatibility.md).
+
+## Project size
+
+At the 0.2.0 checkpoint the repository contains roughly 1,200 non-comment,
+non-test lines of MoonBit source and 45 tests. Exact counts and the counting
+method are recorded in [`docs/metrics.md`](docs/metrics.md).
 
 ## References and license
 
