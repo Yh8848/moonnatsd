@@ -1,12 +1,25 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "Yh8848/moonnatsd/src/cli"
 
+import {
+  "Yh8848/moonnatsd/src/server",
+}
+
 // Values
+pub fn parse_args(Array[String]) -> Result[CliOptions, String]
+
+pub fn print_help() -> Unit
+
 pub async fn run() -> Unit
 
 // Errors
 
 // Types and methods
+pub(all) struct CliOptions {
+  config : @server.ServerConfig
+  help : Bool
+  version : Bool
+}
 
 // Type aliases
 

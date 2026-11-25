@@ -1,5 +1,8 @@
 import {
+  "Yh8848/moonnatsd/src/core",
   "Yh8848/moonnatsd/src/server",
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
 }
 
 supported_targets = "+native"
