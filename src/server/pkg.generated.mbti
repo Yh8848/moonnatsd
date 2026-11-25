@@ -15,11 +15,20 @@ pub async fn serve(@socket.TcpServer, ServerConfig) -> Unit
 // Errors
 
 // Types and methods
+pub(all) enum AuthConfig {
+  Token(String)
+  UserPass(String, String)
+}
+
 pub(all) struct ServerConfig {
   host : String
   port : Int32
   max_payload : Int32
+  max_control_line : Int32
+  max_connections : Int32
   server_name : String
+  auth : AuthConfig?
+  monitor_port : Int32?
 }
 pub fn ServerConfig::new() -> Self
 

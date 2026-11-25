@@ -6,13 +6,27 @@ import {
 }
 
 // Values
+pub fn err_line(String) -> String
+
+pub fn header_size(Header) -> Int32
+
 pub fn hmsg_header(String, String, String?, Int32, Int32) -> String
 
 pub fn info_line(String, String, String, Int32, Int32) -> String
 
 pub fn msg_header(String, String, String?, Int32) -> String
 
+pub fn ok_line() -> String
+
 pub fn parse_client_line(String, Int32) -> Result[ClientOp, ParseError]
+
+pub fn parse_connect(String) -> Result[ConnectOptions, ConnectError]
+
+pub fn parse_header_block(String) -> Result[Header, HeaderError]
+
+pub fn ping_line() -> String
+
+pub fn pong_line() -> String
 
 pub fn subject_matches(String, String) -> Bool
 
@@ -35,6 +49,46 @@ pub(all) enum ClientOp {
 }
 
 #derive(Eq, @debug.Debug)
+pub(all) enum ConnectError {
+  BadJson(String)
+  NotAnObject
+}
+
+pub(all) struct ConnectOptions {
+  verbose : Bool
+  pedantic : Bool
+  echo : Bool
+  headers : Bool
+  no_responders : Bool
+  protocol : Int32
+  name : String?
+  user : String?
+  pass : String?
+  auth_token : String?
+}
+pub fn ConnectOptions::default() -> Self
+pub fn ConnectOptions::is_verbose(Self) -> Bool
+pub fn ConnectOptions::no_echo(Self) -> Bool
+
+pub(all) struct Header {
+  mut status : String?
+  values : Array[(String, String)]
+}
+pub fn Header::get(Self, String) -> String?
+pub fn Header::new() -> Self
+pub fn Header::remove(Self, String) -> Unit
+pub fn Header::set(Self, String, String) -> Unit
+pub fn Header::to_string(Self) -> String
+
+#derive(Eq, @debug.Debug)
+pub(all) enum HeaderError {
+  MissingVersion
+  BadVersion(String)
+  MissingColon(String)
+  EmptyKey
+}
+
+#derive(Eq, @debug.Debug)
 pub(all) enum ParseError {
   EmptyLine
   UnknownOp(String)
@@ -44,15 +98,46 @@ pub(all) enum ParseError {
 }
 
 pub struct Registry {
-  subs : Array[Subscription]
-  cursor : Map[String, Int32]
+  trie : SubjectTrie
 }
 pub fn Registry::add(Self, Subscription) -> Unit
 pub fn Registry::length(Self) -> Int32
 pub fn Registry::new() -> Self
+pub fn Registry::node_count(Self) -> Int32
 pub fn Registry::remove(Self, Int32, String) -> Unit
 pub fn Registry::remove_conn(Self, Int32) -> Unit
 pub fn Registry::select(Self, String) -> Array[Subscription]
+
+pub(all) struct Stats {
+  mut connections : Int32
+  mut total_connections : Int32
+  mut in_msgs : Int32
+  mut out_msgs : Int32
+  mut in_bytes : Int32
+  mut out_bytes : Int32
+  mut subscriptions : Int32
+}
+pub fn Stats::add_subscription(Self) -> Unit
+pub fn Stats::close_connection(Self) -> Unit
+pub fn Stats::new() -> Self
+pub fn Stats::open_connection(Self) -> Unit
+pub fn Stats::record_in(Self, Int32) -> Unit
+pub fn Stats::record_out(Self, Int32) -> Unit
+pub fn Stats::remove_subscriptions(Self, Int32) -> Unit
+pub fn Stats::to_json(Self) -> String
+
+pub struct SubjectTrie {
+  nodes : Array[TrieNode]
+  cursor : Map[String, Int32]
+}
+pub fn SubjectTrie::count(Self) -> Int32
+pub fn SubjectTrie::insert(Self, Subscription) -> Unit
+pub fn SubjectTrie::new() -> Self
+pub fn SubjectTrie::node_count(Self) -> Int32
+pub fn SubjectTrie::remove(Self, Int32, String) -> Unit
+pub fn SubjectTrie::remove_conn(Self, Int32) -> Unit
+pub fn SubjectTrie::remove_sub(Self, String, Int32, String) -> Unit
+pub fn SubjectTrie::select(Self, String) -> Array[Subscription]
 
 pub(all) struct Subscription {
   sid : String
@@ -60,6 +145,8 @@ pub(all) struct Subscription {
   queue : String?
   conn_id : Int32
 }
+
+type TrieNode
 
 // Type aliases
 
