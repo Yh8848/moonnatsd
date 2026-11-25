@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-25
+
+### Added
+
+- Embedded `ServerHandle` API: `start`, `addr`, `url`, `serve`, `stop`
+  (`src/server/handle.mbt`); port 0 gives a test-friendly ephemeral port.
+- No-responders 503: a request with no matching subscriber receives a
+  `NATS/1.0 503` header on its reply subject when the client opts in.
+- Bounded per-connection outbox (4096 frames); a full outbox closes the
+  slow-consumer socket instead of growing memory without bound.
+- Integration tests for the embedded handle and no-responders behavior.
+
+### Changed
+
+- Delivery and status frames use non-blocking enqueue; slow consumers are
+  disconnected rather than blocking the publisher.
+
 ## [0.2.0] - 2026-11-25
 
 ### Added

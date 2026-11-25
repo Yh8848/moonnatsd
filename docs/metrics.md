@@ -20,20 +20,20 @@ Run it from the repository root:
 python3 scripts/count_source_lines.py
 ```
 
-## 0.2.0 checkpoint (2026-11-25)
+## 0.3.0 checkpoint (2026-11-25)
 
 | Metric | Lines |
 |---|---|
-| raw | 2177 |
-| code | 1793 |
-| **source (non-test)** | **1249** |
-| test | 544 |
+| raw | 2331 |
+| code | 1911 |
+| **source (non-test)** | **1312** |
+| test | 599 |
 
 Largest source files:
 
 | File | Non-comment lines |
 |---|---|
-| `src/server/server.mbt` | 286 |
+| `src/server/server.mbt` | 329 |
 | `src/core/protocol.mbt` | 186 |
 | `src/core/trie.mbt` | 184 |
 | `src/cli/args.mbt` | 174 |
@@ -43,7 +43,8 @@ Largest source files:
 | `src/core/stats.mbt` | 49 |
 | `src/core/subject.mbt` | 37 |
 | `src/core/registry.mbt` | 33 |
+| `src/server/handle.mbt` | 20 |
 
 The source-only number is the conservative one: it excludes tests, generated
-interfaces, Markdown, YAML and comments. It is roughly 2.5x the 500-line
+interfaces, Markdown, YAML and comments. It is roughly 2.6x the 500-line
 threshold.

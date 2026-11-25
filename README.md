@@ -7,9 +7,10 @@ NATS-compatible server with JetStream, written in MoonBit.
 > **Status: core NATS server is working.** A client can connect, authenticate,
 > `PING`/`PONG`, `SUB`, `PUB`/`HPUB`, and receive `MSG`/`HMSG`, including
 > wildcard and queue-group subscriptions. The server enforces payload/control
-> line/connection limits, serves `/varz`, `/connz`, `/subsz` and `/healthz`, and
-> has a CLI with auth and monitoring flags. JetStream and KV are the next
-> milestones. The plan and scope are tracked in
+> line/connection limits, has bounded per-connection outboxes with slow-consumer
+> disconnects, implements no-responders 503, serves `/varz`, `/connz`, `/subsz`
+> and `/healthz`, and exposes an embedded `ServerHandle` API. JetStream and KV
+> are the next milestones. The plan and scope are tracked in
 > [`docs/acceptance.md`](docs/acceptance.md).
 
 ## Why
@@ -30,13 +31,17 @@ the server side, with a focus on:
 ## Implemented today
 
 - **Protocol core** (`src/core`): `INFO`, `CONNECT`, `PING`, `PONG`, `PUB`,
-  `HPUB`, `SUB`, `UNSUB`, `MSG`, `HMSG`, `+OK`, `-ERR`; `NATS/1.0` header block
-  parser; `CONNECT` JSON options; token and user/password auth.
+  `HPUB`, `SUB`, `UNSUB`, `MSG`, `HMSG`, `-ERR`; `NATS/1.0` header block parser;
+  `CONNECT` JSON options; token and user/password auth.
 - **Subject trie**: `*` and `>` matching, queue-group round-robin, in-place
   removal, node counting.
-- **Server runtime** (`src/server`): one task per connection, a per-connection
-  outbox so frames never interleave, bounded control line/payload, structured
-  shutdown, connection and byte counters.
+- **Server runtime** (`src/server`): one task per connection, bounded
+  per-connection outbox with slow-consumer disconnect, control line/payload/
+  connection limits, structured shutdown, connection and byte counters.
+- **No responders**: a request with no matching subscriber receives a
+  `503` status header on its reply subject when the client opts in.
+- **Embedded API**: `@natsd.start(config)` returns a `ServerHandle` with
+  `addr()`, `url()`, `serve()` and `stop()`; port `0` gives an ephemeral port.
 - **Monitoring**: `/varz`, `/connz`, `/subsz`, `/healthz` JSON over HTTP.
 - **CLI** (`src/cli`): `--host`, `--port`, `--max-payload`,
   `--max-control-line`, `--max-connections`, `--server-name`, `--token`,
@@ -46,9 +51,9 @@ the server side, with a focus on:
 
 | Area | v1 |
 |---|---|
-| Core NATS | protocol listed above, headers, wildcards, queue groups, auth, limits, monitoring |
+| Core NATS | protocol listed above, headers, wildcards, queue groups, auth, limits, no-responders, monitoring |
+| Embedded | `ServerHandle` + `start` / `serve` / `stop` |
 | JetStream | single-node streams, retention, dedupe, push/pull consumers, ACK/NAK/WPI/TERM, KV (next) |
-| Interfaces | `moonnatsd` CLI, JSON status, monitoring endpoints |
 | Out of scope | clustering/Raft, leaf nodes, gateways, JWT/nkey, multi-tenancy, mirrors/sources, object store, encryption at rest |
 
 ## Quickstart
@@ -71,18 +76,23 @@ curl -s http://127.0.0.1:8222/varz
 nats -s nats://127.0.0.1:4222 --auth-token secret pub hello world
 ```
 
-In another terminal, with the official [`nats` CLI](https://github.com/nats-io/natscli):
+Embedded in a MoonBit test:
 
-```bash
-nats -s nats://127.0.0.1:4222 sub hello
-nats -s nats://127.0.0.1:4222 pub hello world
+```moonbit
+let handle = @natsd.start(config)   // config.port = 0 for an ephemeral port
+@async.with_task_group(group => {
+  group.spawn_bg(() => handle.serve())
+  let url = handle.url()
+  // connect a client to url
+  handle.stop()
+})
 ```
 
 ## Architecture
 
 ```
 src/core      pure protocol model, header/CONNECT parsing, subject trie, stats
-src/server    native listener/connection runtime, auth, monitoring
+src/server    native listener/connection runtime, auth, monitoring, embedded handle
 src/store     WAL/block storage and recovery (planned)
 src/jetstream stream/consumer state machines (planned)
 src/kv        KV facade over JetStream (planned)
@@ -95,8 +105,8 @@ are tracked in [`docs/compatibility.md`](docs/compatibility.md).
 
 ## Project size
 
-At the 0.2.0 checkpoint the repository contains roughly 1,200 non-comment,
-non-test lines of MoonBit source and 45 tests. Exact counts and the counting
+At the 0.3.0 checkpoint the repository contains roughly 1,300 non-comment,
+non-test lines of MoonBit source and 47 tests. Exact counts and the counting
 method are recorded in [`docs/metrics.md`](docs/metrics.md).
 
 ## References and license

@@ -18,7 +18,6 @@ async test "embedded server handle" {
     }) catch {
       _ => assert_true(false)
     }
-    handle.stop()
     group.return_immediately(())
   })
 }

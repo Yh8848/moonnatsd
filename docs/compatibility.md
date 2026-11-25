@@ -11,7 +11,7 @@ Status values: `yes`, `partial`, `no`.
 | Operation | Status | Notes |
 |---|---|---|
 | `INFO` | yes | fields: `server_id`, `server_name`, `version`, `proto`, `go`, `host`, `port`, `headers`, `max_payload`, `jetstream` |
-| `CONNECT` | yes | JSON parsed; `auth_token`, `user`, `pass`, `name` applied |
+| `CONNECT` | yes | JSON parsed; `auth_token`, `user`, `pass`, `name`, `no_responders` applied |
 | `PING` / `PONG` | yes | |
 | `PUB` | yes | subject, optional reply, size limit enforced |
 | `HPUB` | yes | header block size validated; delivered as `HMSG`; KV/ack headers are not interpreted yet |
@@ -21,6 +21,7 @@ Status values: `yes`, `partial`, `no`.
 | `HMSG` | yes | |
 | `+OK` | partial | not sent yet (only relevant with `verbose`) |
 | `-ERR` | yes | parser/limit/auth errors |
+| no-responders 503 | yes | opt-in via `CONNECT`; delivered to the reply subject |
 
 ## Connection behavior
 
@@ -31,8 +32,9 @@ Status values: `yes`, `partial`, `no`.
 | token authentication | yes | `--token` / `AuthConfig::Token` |
 | user/password authentication | yes | `--user` + `--pass` / `AuthConfig::UserPass` |
 | connection limit | yes | passed to `TcpServer::run_forever` |
-| slow-consumer disconnect | partial | bounded outbox is planned; current queue is unbounded |
+| slow-consumer disconnect | yes | bounded per-connection outbox (4096 frames); a full outbox closes the socket |
 | monitoring `/varz` `/connz` `/subsz` `/healthz` | yes | JSON over HTTP on `--monitor-port` |
+| embedded `ServerHandle` | yes | `start` / `addr` / `url` / `serve` / `stop`; port 0 is ephemeral |
 
 ## JetStream / KV
 
@@ -43,8 +45,9 @@ push/pull consumers, ACK/NAK/WPI/TERM and KV; see `docs/acceptance.md`.
 
 - The listener still binds to `127.0.0.1`; `ServerConfig.host` is accepted by
   the CLI but the listener refactor is pending.
-- `CONNECT` options such as `verbose`, `pedantic` and `no_responders` are parsed
-  but only `auth_token` / `user` / `pass` / `name` affect behavior today.
+- `CONNECT` options such as `verbose`, `pedantic` and `headers` are parsed but
+  only `auth_token` / `user` / `pass` / `name` / `no_responders` affect
+  behavior today.
 - `HPUB` header blocks are validated but not interpreted for JetStream/KV
   semantics.
 - No TLS, WebSocket or clustering.

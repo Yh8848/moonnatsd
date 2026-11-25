@@ -12,6 +12,8 @@ pub async fn run(ServerConfig) -> Unit
 
 pub async fn serve(@socket.TcpServer, ServerConfig) -> Unit
 
+pub async fn start(ServerConfig) -> ServerHandle
+
 // Errors
 
 // Types and methods
@@ -31,6 +33,15 @@ pub(all) struct ServerConfig {
   monitor_port : Int32?
 }
 pub fn ServerConfig::new() -> Self
+
+pub struct ServerHandle {
+  server : @socket.TcpServer
+  config : ServerConfig
+}
+pub fn ServerHandle::addr(Self) -> @socket.Addr
+pub async fn ServerHandle::serve(Self) -> Unit
+pub fn ServerHandle::stop(Self) -> Unit
+pub fn ServerHandle::url(Self) -> String
 
 // Type aliases
 
